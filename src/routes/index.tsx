@@ -34,12 +34,18 @@ function Index() {
 
   const downloadPdf = async () => {
     setExporting(true);
+    const originals: Array<[HTMLElement, string]> = [];
     try {
       const [{ default: html2canvas }, { jsPDF }, { converter }] = await Promise.all([import("html2canvas"), import("jspdf"), import("culori")]);
+      await document.fonts.ready;
+      await Promise.all(Array.from(document.images).map((image) => image.complete ? Promise.resolve() : new Promise<void>((resolve) => {
+        image.addEventListener("load", () => resolve(), { once: true });
+        image.addEventListener("error", () => resolve(), { once: true });
+      })));
       const slides = Array.from(document.querySelectorAll<HTMLElement>("[data-slide]"));
+      if (slides.length === 0) throw new Error("No slides found");
       const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [1280, 720], hotfixes: ["px_scaling"] });
       const toRgb = converter("rgb");
-      const originals: Array<[HTMLElement, string]> = [];
       document.querySelectorAll<HTMLElement>("body, body *").forEach((element) => {
         const computed = getComputedStyle(element);
         originals.push([element, element.getAttribute("style") ?? ""]);
@@ -52,13 +58,35 @@ function Index() {
         }
       });
       for (const [i, slide] of slides.entries()) {
-        const canvas = await html2canvas(slide, { scale: 1, backgroundColor: null, useCORS: true, logging: false, foreignObjectRendering: true });
+        const canvas = await html2canvas(slide, {
+          scale: 1.5,
+          width: slide.scrollWidth,
+          height: slide.scrollHeight,
+          backgroundColor: "#ffffff",
+          useCORS: true,
+          logging: false,
+          foreignObjectRendering: false,
+          imageTimeout: 15000,
+          onclone: (clonedDocument) => {
+            clonedDocument.querySelectorAll<HTMLElement>("[data-slide]").forEach((element) => {
+              element.style.animation = "none";
+              element.style.opacity = "1";
+              element.style.transform = "none";
+            });
+          },
+        });
+        if (canvas.width === 0 || canvas.height === 0) throw new Error(`Slide ${i + 1} did not render`);
         if (i > 0) pdf.addPage([1280, 720], "landscape");
-        pdf.addImage(canvas.toDataURL("image/jpeg", 0.9), "JPEG", 0, 0, 1280, 720, undefined, "FAST");
+        pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, 1280, 720, undefined, "FAST");
       }
       pdf.save("Civic-Rewards-Investor-Deck.pdf");
+    } catch (error) {
+      console.error("PDF export failed", error);
+      window.alert("The PDF could not be created. Please try again.");
+    } finally {
       originals.forEach(([element, style]) => style ? element.setAttribute("style", style) : element.removeAttribute("style"));
-    } finally { setExporting(false); }
+      setExporting(false);
+    }
   };
 
   return (
