@@ -35,15 +35,29 @@ function Index() {
   const downloadPdf = async () => {
     setExporting(true);
     try {
-      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
+      const [{ default: html2canvas }, { jsPDF }, { converter }] = await Promise.all([import("html2canvas"), import("jspdf"), import("culori")]);
       const slides = Array.from(document.querySelectorAll<HTMLElement>("[data-slide]"));
       const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [1280, 720], hotfixes: ["px_scaling"] });
+      const toRgb = converter("rgb");
+      const originals: Array<[HTMLElement, string]> = [];
+      document.querySelectorAll<HTMLElement>("body, body *").forEach((element) => {
+        const computed = getComputedStyle(element);
+        originals.push([element, element.getAttribute("style") ?? ""]);
+        for (const property of ["color", "backgroundColor", "borderTopColor", "borderRightColor", "borderBottomColor", "borderLeftColor"]) {
+          const value = computed[property as keyof CSSStyleDeclaration];
+          if (typeof value === "string" && value.startsWith("oklch")) {
+            const rgb = toRgb(value);
+            if (rgb) element.style.setProperty(property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`), `rgb(${Math.round(rgb.r * 255)}, ${Math.round(rgb.g * 255)}, ${Math.round(rgb.b * 255)})`);
+          }
+        }
+      });
       for (const [i, slide] of slides.entries()) {
         const canvas = await html2canvas(slide, { scale: 1, backgroundColor: null, useCORS: true, logging: false });
         if (i > 0) pdf.addPage([1280, 720], "landscape");
         pdf.addImage(canvas.toDataURL("image/jpeg", 0.9), "JPEG", 0, 0, 1280, 720, undefined, "FAST");
       }
       pdf.save("Civic-Rewards-Investor-Deck.pdf");
+      originals.forEach(([element, style]) => style ? element.setAttribute("style", style) : element.removeAttribute("style"));
     } finally { setExporting(false); }
   };
 
