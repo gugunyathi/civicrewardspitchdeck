@@ -38,8 +38,8 @@ function Index() {
       const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
       const slides = Array.from(document.querySelectorAll<HTMLElement>("[data-slide]"));
       const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [1280, 720], hotfixes: ["px_scaling"] });
-      for (let i = 0; i < slides.length; i += 1) {
-        const canvas = await html2canvas(slides[i], { scale: 1.5, backgroundColor: null, useCORS: true });
+      for (const [i, slide] of slides.entries()) {
+        const canvas = await html2canvas(slide, { scale: 1, backgroundColor: null, useCORS: true, logging: false });
         if (i > 0) pdf.addPage([1280, 720], "landscape");
         pdf.addImage(canvas.toDataURL("image/jpeg", 0.9), "JPEG", 0, 0, 1280, 720, undefined, "FAST");
       }
