@@ -52,7 +52,7 @@ function Index() {
         }
       });
       for (const [i, slide] of slides.entries()) {
-        const canvas = await html2canvas(slide, { scale: 1, backgroundColor: null, useCORS: true, logging: false });
+        const canvas = await html2canvas(slide, { scale: 1, backgroundColor: null, useCORS: true, logging: false, foreignObjectRendering: true });
         if (i > 0) pdf.addPage([1280, 720], "landscape");
         pdf.addImage(canvas.toDataURL("image/jpeg", 0.9), "JPEG", 0, 0, 1280, 720, undefined, "FAST");
       }
