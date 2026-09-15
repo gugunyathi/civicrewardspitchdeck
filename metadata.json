@@ -1,0 +1,6 @@
+{
+  "name": "Civic Rewards Pitch Deck",
+  "description": "Smart city intelligence that turns verified civic action into resilient local economies.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

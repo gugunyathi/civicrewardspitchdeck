@@ -171,20 +171,38 @@
     box-shadow: 0 24px 60px color-mix(in oklab, var(--deep) 14%, transparent);
   }
 
-  .display { font-family: var(--font-display); letter-spacing: 0; }
+  .display {
+    font-family: var(--font-display);
+    letter-spacing: 0;
+  }
 
   .dot-field {
-    background-image: radial-gradient(circle, color-mix(in oklab, var(--primary) 19%, transparent) 1px, transparent 1px);
+    background-image: radial-gradient(
+      circle,
+      color-mix(in oklab, var(--primary) 19%, transparent) 1px,
+      transparent 1px
+    );
     background-size: 18px 18px;
   }
 }
 
 @media (max-width: 720px) {
-  .slide { min-width: 780px; }
-  .slide-shell { overflow-x: auto; }
+  .slide {
+    min-width: 780px;
+  }
+  .slide-shell {
+    overflow-x: auto;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .slide { animation: settle .45s ease-out both; }
-  @keyframes settle { from { opacity: 0; transform: translateY(12px); } }
+  .slide {
+    animation: settle 0.45s ease-out both;
+  }
+  @keyframes settle {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
 }
