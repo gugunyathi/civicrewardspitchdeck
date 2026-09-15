@@ -46,22 +46,30 @@ function Index() {
       if (slides.length === 0) throw new Error("No slides found");
       const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [1280, 720], hotfixes: ["px_scaling"] });
       const toRgb = converter("rgb");
+      const toCss = (value: string) => value.replace(/(oklch|oklab|color)\([^()]*(\([^()]*\))?[^()]*\)/g, (match) => {
+        try {
+          const rgb = toRgb(match);
+          if (!rgb) return "rgba(0, 0, 0, 0)";
+          const channel = (n: number) => Math.round(Math.min(1, Math.max(0, n)) * 255);
+          return `rgba(${channel(rgb.r)}, ${channel(rgb.g)}, ${channel(rgb.b)}, ${rgb.alpha ?? 1})`;
+        } catch { return "rgba(0, 0, 0, 0)"; }
+      });
+      const properties = ["color", "background-color", "border-top-color", "border-right-color", "border-bottom-color", "border-left-color", "outline-color", "text-decoration-color", "box-shadow", "background-image", "fill", "stroke"];
       document.querySelectorAll<HTMLElement>("body, body *").forEach((element) => {
         const computed = getComputedStyle(element);
         originals.push([element, element.getAttribute("style") ?? ""]);
-        for (const property of ["color", "backgroundColor", "borderTopColor", "borderRightColor", "borderBottomColor", "borderLeftColor"]) {
-          const value = computed[property as keyof CSSStyleDeclaration];
-          if (typeof value === "string" && value.startsWith("oklch")) {
-            const rgb = toRgb(value);
-            if (rgb) element.style.setProperty(property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`), `rgb(${Math.round(rgb.r * 255)}, ${Math.round(rgb.g * 255)}, ${Math.round(rgb.b * 255)})`);
-          }
+        for (const property of properties) {
+          const value = computed.getPropertyValue(property);
+          if (value && /okl(ch|ab)|color\(/.test(value)) element.style.setProperty(property, toCss(value));
         }
       });
+
       for (const [i, slide] of slides.entries()) {
         const canvas = await html2canvas(slide, {
           scale: 1.5,
-          width: slide.scrollWidth,
-          height: slide.scrollHeight,
+          width: slide.clientWidth,
+          height: slide.clientHeight,
+          windowWidth: 1280,
           backgroundColor: "#ffffff",
           useCORS: true,
           logging: false,
@@ -124,8 +132,8 @@ function Index() {
         <div className="slide-shell"><Slide className="bg-deep"><Header n="04" dark/><div className="h-full px-14 pb-12 pt-24"><Title kicker="The engine" light>Data becomes proof. Proof becomes capital.</Title>
           <div className="mt-10 flex items-center gap-3 text-primary-foreground">{["Citizen input","Supplier resolution","AI validation","Points minted"].map((x,i)=><div className="contents" key={x}><div className="flex-1 border border-primary/35 bg-primary/10 p-4 text-center font-bold">{x}</div>{i<3&&<ArrowRight className="shrink-0 text-primary"/>}</div>)}</div>
           <div className="mx-auto h-10 w-px bg-primary"/><div className="grid grid-cols-2 gap-5 text-primary-foreground">
-            <div className="border-t-4 border-primary bg-primary/10 p-6"><p className="text-xs font-bold uppercase text-primary">Institutional rail</p><h3 className="display mt-2 text-2xl font-extrabold">Smart city reinvestment</h3><p className="mt-3 text-sm text-primary-foreground/65">Tokenised infrastructure bonds · IPP debt · fractional municipal debt</p><p className="display mt-7 text-4xl font-extrabold text-primary">9.5–11.4%</p><p className="text-xs uppercase text-primary-foreground/60">Target annual yield</p></div>
-            <div className="border-t-4 border-accent bg-primary-foreground/5 p-6"><p className="text-xs font-bold uppercase text-accent">Community rail</p><h3 className="display mt-2 text-2xl font-extrabold">Hyper-local economic loop</h3><p className="mt-3 text-sm text-primary-foreground/65">Ward-locked redemption · measurable footfall · SME revenue growth</p><p className="display mt-7 text-4xl font-extrabold text-accent">100%</p><p className="text-xs uppercase text-primary-foreground/60">Traceable B2C footprint</p></div>
+            <div className="border-t-4 border-primary bg-primary/10 p-6"><p className="text-xs font-bold uppercase text-primary">Institutional rail</p><h3 className="display mt-2 text-2xl font-extrabold">Smart city reinvestment</h3><p className="mt-3 text-sm text-primary-foreground/65">Tokenised infrastructure bonds · IPP debt · fractional municipal debt</p><p className="display mt-7 text-4xl font-extrabold leading-none text-primary">9.5–11.4%</p><p className="mt-2 text-xs uppercase text-primary-foreground/60">Target annual yield</p></div>
+            <div className="border-t-4 border-accent bg-primary-foreground/5 p-6"><p className="text-xs font-bold uppercase text-accent">Community rail</p><h3 className="display mt-2 text-2xl font-extrabold">Hyper-local economic loop</h3><p className="mt-3 text-sm text-primary-foreground/65">Ward-locked redemption · measurable footfall · SME revenue growth</p><p className="display mt-7 text-4xl font-extrabold leading-none text-accent">100%</p><p className="mt-2 text-xs uppercase text-primary-foreground/60">Traceable B2C footprint</p></div>
           </div></div>
         </Slide></div>
 
