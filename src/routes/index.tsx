@@ -46,17 +46,22 @@ function Index() {
       if (slides.length === 0) throw new Error("No slides found");
       const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [1280, 720], hotfixes: ["px_scaling"] });
       const toRgb = converter("rgb");
+      const toCss = (value: string) => value.replace(/(oklch|oklab|color)\([^()]*(\([^()]*\))?[^()]*\)/g, (match) => {
+        try {
+          const rgb = toRgb(match);
+          return rgb ? `rgb(${Math.round(Math.min(1, Math.max(0, rgb.r)) * 255)}, ${Math.round(Math.min(1, Math.max(0, rgb.g)) * 255)}, ${Math.round(Math.min(1, Math.max(0, rgb.b)) * 255)})` : "rgb(0, 0, 0)";
+        } catch { return "rgb(0, 0, 0)"; }
+      });
+      const properties = ["color", "background-color", "border-top-color", "border-right-color", "border-bottom-color", "border-left-color", "outline-color", "text-decoration-color", "box-shadow", "background-image", "fill", "stroke"];
       document.querySelectorAll<HTMLElement>("body, body *").forEach((element) => {
         const computed = getComputedStyle(element);
         originals.push([element, element.getAttribute("style") ?? ""]);
-        for (const property of ["color", "backgroundColor", "borderTopColor", "borderRightColor", "borderBottomColor", "borderLeftColor"]) {
-          const value = computed[property as keyof CSSStyleDeclaration];
-          if (typeof value === "string" && value.startsWith("oklch")) {
-            const rgb = toRgb(value);
-            if (rgb) element.style.setProperty(property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`), `rgb(${Math.round(rgb.r * 255)}, ${Math.round(rgb.g * 255)}, ${Math.round(rgb.b * 255)})`);
-          }
+        for (const property of properties) {
+          const value = computed.getPropertyValue(property);
+          if (value && /okl(ch|ab)|color\(/.test(value)) element.style.setProperty(property, toCss(value));
         }
       });
+
       for (const [i, slide] of slides.entries()) {
         const canvas = await html2canvas(slide, {
           scale: 1.5,
