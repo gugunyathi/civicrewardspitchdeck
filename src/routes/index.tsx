@@ -49,8 +49,10 @@ function Index() {
       const toCss = (value: string) => value.replace(/(oklch|oklab|color)\([^()]*(\([^()]*\))?[^()]*\)/g, (match) => {
         try {
           const rgb = toRgb(match);
-          return rgb ? `rgb(${Math.round(Math.min(1, Math.max(0, rgb.r)) * 255)}, ${Math.round(Math.min(1, Math.max(0, rgb.g)) * 255)}, ${Math.round(Math.min(1, Math.max(0, rgb.b)) * 255)})` : "rgb(0, 0, 0)";
-        } catch { return "rgb(0, 0, 0)"; }
+          if (!rgb) return "rgba(0, 0, 0, 0)";
+          const channel = (n: number) => Math.round(Math.min(1, Math.max(0, n)) * 255);
+          return `rgba(${channel(rgb.r)}, ${channel(rgb.g)}, ${channel(rgb.b)}, ${rgb.alpha ?? 1})`;
+        } catch { return "rgba(0, 0, 0, 0)"; }
       });
       const properties = ["color", "background-color", "border-top-color", "border-right-color", "border-bottom-color", "border-left-color", "outline-color", "text-decoration-color", "box-shadow", "background-image", "fill", "stroke"];
       document.querySelectorAll<HTMLElement>("body, body *").forEach((element) => {
@@ -65,8 +67,9 @@ function Index() {
       for (const [i, slide] of slides.entries()) {
         const canvas = await html2canvas(slide, {
           scale: 1.5,
-          width: slide.scrollWidth,
-          height: slide.scrollHeight,
+          width: slide.clientWidth,
+          height: slide.clientHeight,
+          windowWidth: 1280,
           backgroundColor: "#ffffff",
           useCORS: true,
           logging: false,
